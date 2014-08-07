@@ -128,6 +128,30 @@ class ElasticSearchServiceIntegrationSpec extends IntegrationSpec {
         List<Product> searchResults = result.searchResults
         searchResults[0].name == product.name
     }
+	
+	void 'should marshal the alias field and unmarshal correctly (ignore alias)'() {
+		given:
+		def location = new GeoPoint(
+			lat: 53.00,
+			lon: 10.00
+		).save(failOnError: true)
+		def building = new Building(
+                name: 'WatchTower',
+                location: location
+        ).save(failOnError: true)
+		building.save(failOnError: true)
+
+		elasticSearchService.index(building)
+		elasticSearchAdminService.refresh()
+
+		when:
+		def result = elasticSearchService.search(building.name, [indices: Building, types: Building])
+
+		then:
+		result.total == 1
+		List<Building> searchResults = result.searchResults
+		searchResults[0].name == building.name
+	}
 
     void 'a date value should be marshalled and de-marshalled correctly'() {
         Date date = new Date()
@@ -158,7 +182,7 @@ class ElasticSearchServiceIntegrationSpec extends IntegrationSpec {
         ).save(failOnError: true)
 
         def building = new Building(
-                name: 'WatchTower',
+                name: 'EvileagueHQ',
                 location: location
         ).save(failOnError: true)
 
@@ -166,7 +190,7 @@ class ElasticSearchServiceIntegrationSpec extends IntegrationSpec {
         elasticSearchAdminService.refresh()
 
         when:
-        def result = elasticSearchService.search('WatchTower', [indices: Building, types: Building])
+        def result = elasticSearchService.search('EvileagueHQ', [indices: Building, types: Building])
 
         then:
         elasticSearchHelper.elasticSearchClient.admin().indices()

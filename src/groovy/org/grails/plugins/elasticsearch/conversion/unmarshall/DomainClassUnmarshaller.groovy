@@ -65,12 +65,21 @@ class DomainClassUnmarshaller {
             GroovyObject instance = (GroovyObject) scm.domainClass.newInstance()
             instance.setProperty(identifier.name, id)
 
+            def aliasFields = elasticSearchContextHolder.getMappingContext(scm.domainClass).getPropertiesMapping().findResults {
+                if (it.isAlias()) {
+                    return it.getAlias()
+                }
+                null
+            }
+
             Map rebuiltProperties = new HashMap()
             for (Map.Entry<String, Object> entry : hit.source.entrySet()) {
+                def key = entry.key
+                if (aliasFields.contains(key)) {
+                    continue
+                }
                 try {
-                    def key = entry.key
                     unmarshallingContext.unmarshallingStack.push(key)
-
                     def unmarshalledProperty = unmarshallProperty(scm.domainClass, key, entry.value, unmarshallingContext)
                     rebuiltProperties[key] = unmarshalledProperty
                     populateCyclicReference(instance, rebuiltProperties, unmarshallingContext)
